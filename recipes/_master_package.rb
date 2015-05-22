@@ -39,14 +39,14 @@ when 'debian'
     code <<-EOH
       sed -i "s|/var/log/jenkins|#{node['jenkins']['master']['log_directory']}|g" /etc/logrotate.d/jenkins
     EOH
+    not_if "grep #{node['jenkins']['master']['log_directory']} /etc/logrotate.d/jenkins"
   end
 
   bash "Modify packaged log rotation file name" do
     code <<-EOH
-      if [ -z "`grep #{node['jenkins']['master']['access_log']} /etc/logrotate.d/jenkins`" ]; then
-        sed -i "s|{|#{node['jenkins']['master']['log_directory']}/#{node['jenkins']['master']['access_log']} {|" /etc/logrotate.d/jenkins
-      fi
+      sed -i "s|{|#{node['jenkins']['master']['log_directory']}/#{node['jenkins']['master']['access_log']} {|" /etc/logrotate.d/jenkins
     EOH
+    not_if "grep #{node['jenkins']['master']['access_log']} /etc/logrotate.d/jenkins"
   end
 
   template '/etc/default/jenkins' do
@@ -70,19 +70,28 @@ when 'rhel'
     code <<-EOH
       sed -i "s|/var/log/jenkins|#{node['jenkins']['master']['log_directory']}|g" /etc/logrotate.d/jenkins
     EOH
+    not_if "grep #{node['jenkins']['master']['log_directory']} /etc/logrotate.d/jenkins"
   end
 
   bash "Modify packaged log rotation file name" do
     code <<-EOH
       sed -i "s|access_log|#{node['jenkins']['master']['access_log']}|g"          /etc/logrotate.d/jenkins
     EOH
+    not_if "grep #{node['jenkins']['master']['access_log']} /etc/logrotate.d/jenkins"
   end
 
-  bash "Modify packaged access log" do
+  bash "Modify packaged access log 1" do
     code <<-EOH
       sed -i "/accessLogger/ s|/var/log/jenkins|#{node['jenkins']['master']['log_directory']}|g" /etc/init.d/jenkins
+    EOH
+    not_if "grep #{node['jenkins']['master']['log_directory']} /etc/init.d/jenkins"
+  end
+
+  bash "Modify packaged access log 2" do
+    code <<-EOH
       sed -i "/accessLogger/ s|access_log|#{node['jenkins']['master']['access_log']}|g"          /etc/init.d/jenkins
     EOH
+    not_if "grep #{node['jenkins']['master']['access_log']} /etc/init.d/jenkins"
   end
 
   template '/etc/sysconfig/jenkins' do
