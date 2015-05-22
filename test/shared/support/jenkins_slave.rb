@@ -80,6 +80,10 @@ module Serverspec
         port === try { xml.elements['//port'].text.to_i }
       end
 
+      def has_java_path?(path)
+        path === try { xml.elements['//javaPath'].text }
+      end
+
       def has_credentials?(credentials)
         credentials_id = try { xml.elements['//credentialsId'].text }
         credentials_xml = credentials_xml_for_id(credentials_id)
@@ -105,13 +109,22 @@ module Serverspec
         config_url = "http://localhost:8080/computer/#{name}/config.xml"
         response = Net::HTTP.get_response(URI.parse(config_url))
 
-        @xml = if response.kind_of?(Net::HTTPNotFound)
+        @xml = if response.is_a?(Net::HTTPNotFound)
                  nil
                # If authn is enabled fall back to reading main config from disk
-               elsif response.kind_of?(Net::HTTPForbidden)
-                 contents = ::File.read('/var/lib/jenkins/config.xml')
-                 config_xml = REXML::Document.new(contents)
-                 REXML::Document.new(config_xml.elements["//slave[name='#{name}']"].to_s)
+               elsif response.is_a?(Net::HTTPForbidden)
+                 # attempt to read from dedicated slave xml file first
+                 config_path = "/var/lib/jenkins/nodes/#{name}/config.xml"
+
+                 if ::File.exist?(config_path)
+                   contents = ::File.read(config_path)
+                   REXML::Document.new(contents)
+                 # Fall back to reading from the main config xml
+                 else
+                   contents = ::File.read('/var/lib/jenkins/config.xml')
+                   config_xml = REXML::Document.new(contents)
+                   REXML::Document.new(config_xml.elements["//slave[name='#{name}']"].to_s)
+                 end
                else
                  REXML::Document.new(response.body)
                end
@@ -123,7 +136,7 @@ module Serverspec
         config_url = "http://localhost:8080/computer/#{name}/api/json?pretty=true"
         response = Net::HTTP.get_response(URI.parse(config_url))
 
-        @json = if response.kind_of? Net::HTTPNotFound
+        @json = if response.is_a? Net::HTTPNotFound
                   nil
                 else
                   JSON.parse(response.body, symbolize_names: true)

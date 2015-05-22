@@ -1,1 +1,0 @@
-../../authentication/serverspec/assert_authn_enabled_spec.rb

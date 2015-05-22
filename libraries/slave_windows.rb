@@ -2,7 +2,7 @@
 # Cookbook Name:: jenkins
 # HWRP:: windows_slave
 #
-# Author:: Seth Chisamore <schisamo@getchef.com>
+# Author:: Seth Chisamore <schisamo@chef.io>
 #
 # Copyright 2013-2014, Chef Software, Inc.
 #
@@ -37,21 +37,24 @@ class Chef
 
     # Attributes
     attribute :password,
-      kind_of: String
+              kind_of: String
     attribute :user,
-      kind_of: String,
-      default: 'LocalSystem'
+              kind_of: String,
+              default: 'LocalSystem'
     attribute :remote_fs,
-      kind_of: String,
-      default: 'C:\jenkins'
+              kind_of: String,
+              default: 'C:\jenkins'
     attribute :winsw_url,
-      kind_of: String,
-      default: 'http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe'
+              kind_of: String,
+              default: 'http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe'
     attribute :winsw_checksum,
-      kind_of: String,
-      default: '052f82c167fbe68a4025bcebc19fff5f11b43576a2ec62b0415432832fa2272d'
+              kind_of: String,
+              default: '052f82c167fbe68a4025bcebc19fff5f11b43576a2ec62b0415432832fa2272d'
     attribute :path,
-      kind_of: String
+              kind_of: String
+    attribute :pre_run_cmds,
+              kind_of: Array,
+              default: []
   end
 end
 
@@ -75,14 +78,37 @@ class Chef
       #
       slave_exe_resource.run_action(:create)
       slave_compat_xml.run_action(:create)
+      slave_bat_resource.run_action(:create)
       slave_xml_resource.run_action(:create)
-      install_service_resource.run_action(:run)
-      service_resource.run_action(:start)
+      install_service_resource.run_action(:run) if slave_xml_resource.updated?
+
+      # We need to restart the service if the slave jar or bat file change
+      if slave_jar_resource.updated? || slave_bat_resource.updated?
+        service_resource.run_action(:restart)
+      # otherwise just ensure it's running
+      else
+        service_resource.run_action(:start)
+      end
     end
 
     protected
 
     # Embedded Resources
+
+    # Creates a `directory` resource that represents the directory
+    # specified the `remote_fs` attribute. The caller will need to call
+    # `run_action` on the resource.
+    #
+    # @return [Chef::Resource::Directory]
+    #
+    def remote_fs_dir_resource
+      return @remote_fs_dir_resource if @remote_fs_dir_resource
+      @remote_fs_dir_resource = Chef::Resource::Directory.new(new_resource.remote_fs, run_context)
+      user_parts = user_hash
+      @remote_fs_dir_resource.rights(:full_control, user_parts['username'])
+      @remote_fs_dir_resource.recursive(true)
+      @remote_fs_dir_resource
+    end
 
     #
     # Creates a `remote_file` resource that represents the remote
@@ -128,6 +154,21 @@ class Chef
       @slave_compat_xml
     end
 
+    def user_hash
+      userhash = {}
+
+      user_parts = new_resource.user.match(/(.*)\\(.*)/)
+      if user_parts
+        userhash['domain'] = user_parts[1]
+        userhash['username']   = user_parts[2]
+      else
+        userhash['domain'] = '.'
+        userhash['username']   = new_resource.user
+      end
+
+      userhash
+    end
+
     #
     # Creates a `template` resource that represents the config file used
     # to create the Window's service. The caller will need to call
@@ -139,15 +180,11 @@ class Chef
       return @slave_xml_resource if @slave_xml_resource
 
       slave_xml = ::File.join(new_resource.remote_fs, "#{new_resource.service_name}.xml")
-      # Determine if our user has a domain
-      user_parts = new_resource.user.match(/(.*)\\(.*)/)
-      if user_parts
-        user_domain = match[1]
-        user_account   = match[2]
-      else
-        user_domain = "."
-        user_account   = new_resource.user
-      end
+
+      # Get User object
+      user_parts = user_hash
+      user_domain = user_parts['domain']
+      user_account = user_parts['username']
 
       @slave_xml_resource = Chef::Resource::Template.new(slave_xml, run_context)
       @slave_xml_resource.cookbook('jenkins')
@@ -164,8 +201,33 @@ class Chef
         user_password: new_resource.password,
         path:          new_resource.path,
       )
-      @slave_xml_resource.notifies(:restart, service_resource)
+      @slave_xml_resource.notifies(:run, install_service_resource)
       @slave_xml_resource
+    end
+
+    #
+    # Create bat file from jenkins-slave.bat.erb to launches Jenkins jar as
+    # service. Optionally run any commands in :pre_run_cmds before launching jar
+    #
+    # @return [Chef::Resource::Template]
+    #
+    def slave_bat_resource
+      return @slave_bat_resource if @slave_bat_resource
+
+      slave_bat = ::File.join(new_resource.remote_fs, 'jenkins-slave.bat')
+
+      @slave_bat_resource = Chef::Resource::Template.new(slave_bat, run_context)
+      @slave_bat_resource.cookbook('jenkins')
+      @slave_bat_resource.source('jenkins-slave.bat.erb')
+      @slave_bat_resource.variables(
+        pre_run_cmds:  new_resource.pre_run_cmds,
+        new_resource:  new_resource,
+        java_bin:      java,
+        slave_jar:     slave_jar,
+        jnlp_url:      jnlp_url,
+        jnlp_secret:   jnlp_secret,
+      )
+      @slave_bat_resource
     end
 
     #
@@ -178,13 +240,17 @@ class Chef
     def install_service_resource
       return @install_service_resource if @install_service_resource
 
-      description = "Install '#{new_resource.service_name}' service"
-      @install_service_resource = Chef::Resource::Execute.new(description, run_context)
-      @install_service_resource.command('jenkins-slave.exe install')
+      code = <<-EOH.gsub(/ ^{8}/, '')
+        IF "#{wmi_property_from_query(:name, "select * from Win32_Service where name = '#{new_resource.service_name}'")}" == "#{new_resource.service_name}" (
+          #{new_resource.service_name}.exe stop
+          #{new_resource.service_name}.exe uninstall
+        )
+        #{new_resource.service_name}.exe install
+      EOH
+
+      @install_service_resource = Chef::Resource::Batch.new("install-#{new_resource.service_name}", run_context)
+      @install_service_resource.code(code)
       @install_service_resource.cwd(new_resource.remote_fs)
-      @install_service_resource.not_if do
-        wmi_property_from_query(:name, "select * from Win32_Service where name = '#{new_resource.service_name}'")
-      end
       @install_service_resource
     end
 
@@ -194,7 +260,7 @@ class Chef
     def service_resource
       return @service_resource if @service_resource
 
-      @service_resource = Chef::Resource::Service.new(new_resource.service_name, run_context)
+      @service_resource = Chef::Resource.resource_for_node(:service, node).new(new_resource.service_name, run_context)
       @service_resource.only_if do
         wmi_property_from_query(:name, "select * from Win32_Service where name = '#{new_resource.service_name}'")
       end
@@ -206,5 +272,5 @@ end
 Chef::Platform.set(
   resource: :jenkins_windows_slave,
   platform: :windows,
-  provider: Chef::Provider::JenkinsWindowsSlave
+  provider: Chef::Provider::JenkinsWindowsSlave,
 )

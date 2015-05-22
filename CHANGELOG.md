@@ -2,6 +2,83 @@ jenkins Cookbook CHANGELOG
 ==========================
 This file is used to list changes made in each version of the jenkins cookbook.
 
+v2.3.1 (2015-05-19)
+-------------------
+# Bug
+- Fix Travis badge
+- Re-enable lazy attribute defaults in LWRP workaround for Chef 11
+- Properly escape single quotes in Groovy code
+
+# Improvement
+- Download update center metadata every time
+
+v2.3.0 (2015-05-14)
+-------------------
+### New Feature
+- Add stable source support for package installation
+- Add support for `jvm_options` on `slave_ssh` resource
+- Support executing commands prior to launching Jenkins Windows slave
+- Add username/password support to executor
+
+### Improvement
+- Remove EOL Ruby, update with current supported Rubies
+- Update `.kitchen.yml`
+- Use ChefDK for all Travis testing
+- Fix all Rubocop 0.28.0 style errors
+- Create system user and group for jnlp slave if `use_system_account` flag is set.
+- `jenkins_plugin`: Do a better job understanding "latest" version
+- Mark all credential resources as sensitive; Fixes #288
+- Password credentials ID does not need to be a UUID
+- Restart Windows service on failure; Fixes #334
+- Re-install the Windows service if the winsw XML changes
+- Properly restart the service if the slave jar is updated
+
+### Bug
+- Instantiate Windows-specific resource class; Fixes #336
+- Need to escape the `\n` when there are multiple public keys.
+
+v2.2.2 (2015-01-15)
+-------------------
+### Bug
+- Gem::Version raising ArgumentError for weirdly versioned Jenkins plugins
+- Force UTF-8 encoding when parsing update center JSON
+- README grammar fixes
+
+v2.2.1 (2014-12-02)
+-------------------
+### Bug
+- Ensure Win service install command respects alternate service names
+
+v2.2.0 (2014-12-02)
+-------------------
+### Bug
+- Handle jobs that do not have a `disabled` attribute
+- Remove unneeded service restart in Windows slaves
+- Update Jenkins service check to use `WIN32OLE`
+- Properly quote executor file paths cause $WINDOWS
+- Properly escape backslashes in generated Groovy code
+- Jenkins timeout shouldn't rescue Net::HTTP timeout
+- Make sure Net::HTTP#use_ssl is turned on for https end-point
+- Wrap converted Groovy strings in single quotes
+- Recover from commands executed with unknown credentials. This should also fix some cases of JENKINS-22346.
+
+### Improvement
+- Use atomic updates when downloading the slave JAR
+- Create the `slave.jar` in a slave’s JENKINS_HOME
+- Support a checksum attribute for `winsw.exe` download
+- Support setting the `PATH` on Windows slave
+- Add .NET 4.0 compat fix for `winsw`
+- Restart services when `slave.jar` is updated
+- Allow `jenkins_slave` to be used as a standalone resource
+- Add attribute for configuring Runit sv_timeout on masters installed from war
+- Add attribute for creating `jenkins` user as a system account
+- Allow `Executor#execute!` to pass options to underlying `Shellout` instance.
+- Set the senstive attribute for the jenkins cli private key file
+- Don’t backup plugins on uninstall
+- Properly allow installation of specific versions of a plugin. Previously this only worked when a source URL was provided.
+- Optionally ensure a plugin’s dependencies are installed before proceeding with it’s installation
+- Handle plugin downgrades correctly (requires an uninstall of existing, newer version).
+
 v2.1.2 (2014-07-02)
 -------------------
 - Fix a bug where `jenkins_windows_slave` was being called as `jenkins_jnlp_slave`
@@ -65,7 +142,7 @@ v2.0.2 (2014-01-30)
 - Document the need for the Jenkins credentials plugin
 - Fix a typo in the slave jar URL
 - Fix typos in README
-- Fix grammer in the Jenkins helper error
+- Fix grammar in the Jenkins helper error
 - Update Rubocop
 
 
@@ -132,40 +209,40 @@ v2.0.0 (2014-01-14)
 v1.2.2
 ------
 ### Bug
-- **[COOK-3742](https://tickets.opscode.com/browse/COOK-3742)** - Remove trailing comma (restores compatability with Ruby 1.8)
+- **[COOK-3742](https://tickets.chef.io/browse/COOK-3742)** - Remove trailing comma (restores compatability with Ruby 1.8)
 
 
 v1.2.0
 ------
 ### Improvement
-- **[COOK-3710](https://tickets.opscode.com/browse/COOK-3710)** - Allow winsw url to be changed with a node attribute
+- **[COOK-3710](https://tickets.chef.io/browse/COOK-3710)** - Allow winsw url to be changed with a node attribute
 
 ### Bug
-- **[COOK-3709](https://tickets.opscode.com/browse/COOK-3709)** - Use correct attribute value for `java_home`
-- **[COOK-3701](https://tickets.opscode.com/browse/COOK-3701)** - Fix a refactor bug where a template variable was removed that was used in a nested template
-- **[COOK-3594](https://tickets.opscode.com/browse/COOK-3594)** - Fix MiniTest Chef Handler tests for directory permissions
+- **[COOK-3709](https://tickets.chef.io/browse/COOK-3709)** - Use correct attribute value for `java_home`
+- **[COOK-3701](https://tickets.chef.io/browse/COOK-3701)** - Fix a refactor bug where a template variable was removed that was used in a nested template
+- **[COOK-3594](https://tickets.chef.io/browse/COOK-3594)** - Fix MiniTest Chef Handler tests for directory permissions
 
 
 v1.1.0
 ------
 ### Bug
-- **[COOK-3683](https://tickets.opscode.com/browse/COOK-3683)** - Fix plugin provider failures finding the current plugin version
-- **[COOK-3667](https://tickets.opscode.com/browse/COOK-3667)** - Unbreak Travis-CI integration
-- **[COOK-3623](https://tickets.opscode.com/browse/COOK-3623)** - Fix issue where plugins were never updated even if you bump the plugin version in attributes
-- **[COOK-3620](https://tickets.opscode.com/browse/COOK-3620)** - Fix Jenkins `_node_jnlp_test.rb` assumptions
-- **[COOK-3517](https://tickets.opscode.com/browse/COOK-3517)** - Various bug fixes for `jenkins::windows`
-- **[COOK-3516](https://tickets.opscode.com/browse/COOK-3516)** - Fix Jenkins slaves that use JNLP when Jenkins has security enabled
+- **[COOK-3683](https://tickets.chef.io/browse/COOK-3683)** - Fix plugin provider failures finding the current plugin version
+- **[COOK-3667](https://tickets.chef.io/browse/COOK-3667)** - Unbreak Travis-CI integration
+- **[COOK-3623](https://tickets.chef.io/browse/COOK-3623)** - Fix issue where plugins were never updated even if you bump the plugin version in attributes
+- **[COOK-3620](https://tickets.chef.io/browse/COOK-3620)** - Fix Jenkins `_node_jnlp_test.rb` assumptions
+- **[COOK-3517](https://tickets.chef.io/browse/COOK-3517)** - Various bug fixes for `jenkins::windows`
+- **[COOK-3516](https://tickets.chef.io/browse/COOK-3516)** - Fix Jenkins slaves that use JNLP when Jenkins has security enabled
 
 ### New Feature
-- **[COOK-3619](https://tickets.opscode.com/browse/COOK-3619)** - Support intermediate SSL certificates
+- **[COOK-3619](https://tickets.chef.io/browse/COOK-3619)** - Support intermediate SSL certificates
 
 ### Improvement
-- **[COOK-3587](https://tickets.opscode.com/browse/COOK-3587)** - Adding minitest-handler to the runlist for the node suite in Jenkins cookbook
+- **[COOK-3587](https://tickets.chef.io/browse/COOK-3587)** - Adding minitest-handler to the runlist for the node suite in Jenkins cookbook
 
 v1.0.0
 ------
 
-- Initial Opscode release
+- Initial Chef Software release
 
 v0.7.0
 ------

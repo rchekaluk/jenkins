@@ -2,7 +2,7 @@
 # Cookbook Name:: jenkins
 # HWRP:: credentials_password
 #
-# Author:: Seth Chisamore <schisamo@getchef.com>
+# Author:: Seth Chisamore <schisamo@chef.io>
 #
 # Copyright 2013-2014, Chef Software, Inc.
 #
@@ -36,8 +36,8 @@ class Chef
 
     # Attributes
     attribute :password,
-      kind_of: String,
-      required: true
+              kind_of: String,
+              required: true
   end
 end
 
@@ -89,5 +89,5 @@ end
 
 Chef::Platform.set(
   resource: :jenkins_password_credentials,
-  provider: Chef::Provider::JenkinsPasswordCredentials
+  provider: Chef::Provider::JenkinsPasswordCredentials,
 )

@@ -5,7 +5,7 @@
 # Author: AJ Christensen <aj@junglist.gen.nz>
 # Author: Dough MacEachern <dougm@vmware.com>
 # Author: Fletcher Nichol <fnichol@nichol.ca>
-# Author: Seth Chisamore <schisamo@getchef.com>
+# Author: Seth Chisamore <schisamo@chef.io>
 # Author: Guilhem Lettron <guilhem.lettron@youscribe.com>
 # Author: Seth Vargo <sethvargo@gmail.com>
 #
@@ -30,8 +30,8 @@
 begin
   include_recipe "jenkins::_master_#{node['jenkins']['master']['install_method']}"
 rescue Chef::Exceptions::RecipeNotFound
-  raise Chef::Exceptions::RecipeNotFound, "The install method " \
+  raise Chef::Exceptions::RecipeNotFound, 'The install method ' \
     "`#{node['jenkins']['master']['install_method']}' is not supported by " \
-    "this cookbook. Please ensure you have spelled it correctly. If you " \
-    "continue to encounter this error, please file an issue."
+    'this cookbook. Please ensure you have spelled it correctly. If you ' \
+    'continue to encounter this error, please file an issue.'
 end

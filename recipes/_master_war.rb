@@ -5,7 +5,7 @@
 # Author: AJ Christensen <aj@junglist.gen.nz>
 # Author: Doug MacEachern <dougm@vmware.com>
 # Author: Fletcher Nichol <fnichol@nichol.ca>
-# Author: Seth Chisamore <schisamo@getchef.com>
+# Author: Seth Chisamore <schisamo@chef.io>
 # Author: Seth Vargo <sethvargo@gmail.com>
 #
 # Copyright 2010, VMware, Inc.
@@ -27,13 +27,13 @@
 # Create the Jenkins user
 user node['jenkins']['master']['user'] do
   home node['jenkins']['master']['home']
-  system node['jenkins']['master']['use_system_accounts']
+  system node['jenkins']['master']['use_system_accounts'] # ~FC048
 end
 
 # Create the Jenkins group
 group node['jenkins']['master']['group'] do
   members node['jenkins']['master']['user']
-  system node['jenkins']['master']['use_system_accounts']
+  system node['jenkins']['master']['use_system_accounts'] # ~FC048
 end
 
 # Create the home directory

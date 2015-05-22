@@ -12,7 +12,7 @@ driver:
 
 provisioner:
   name: chef_zero
-  require_chef_omnibus: 12.0.0.rc.1
+  require_chef_omnibus: 12.3.0
   data_path: test/shared
   data_bags_path: test/fixtures/data_bags
   attributes:
@@ -20,7 +20,6 @@ provisioner:
       master:
         host: localhost
         install_method: war
-        version: '1.590'
         mirror: http://mirrors.jenkins-ci.org
 
 platforms:
@@ -28,7 +27,7 @@ platforms:
     run_list:
       - apt::default
       - jenkins::java
-  - name: centos-6.4
+  - name: centos-6.6
     run_list:
       - yum::default
       - jenkins::java
@@ -37,36 +36,34 @@ suites:
   #
   # Smoke suite
   #
-  - name: smoke_package
-    includes:
-      - centos-6.4 # [JENKINS-12295] APT repo does not allow version specification
-    run_list: smoke::default
-    attributes:
-      jenkins:
-        master:
-          install_method: package
-          version: '1.580-1.1'
   - name: smoke_package_latest
     run_list: smoke::default
     attributes:
       jenkins:
         master:
           install_method: package
-          version:
-  - name: smoke_war
+  - name: smoke_war_stable
     run_list: smoke::default
     attributes:
       jenkins:
         master:
           install_method: war
-          version: '1.580.1'
-          source: http://mirrors.jenkins-ci.org/war-stable/1.580.1/jenkins.war
+          source: http://mirrors.jenkins-ci.org/war-stable/latest/jenkins.war
+  - name: smoke_war_latest
+    run_list: smoke::default
+    attributes:
+      jenkins:
+        master:
+          install_method: war
+          source: http://mirrors.jenkins-ci.org/war/latest/jenkins.war
 
   #
   # Authentication suites
   #
-  - name: authentication
-    run_list: authentication::default
+  - name: authentication_private_key
+    run_list: authentication::private_key
+  - name: authentication_username_password
+    run_list: authentication::username_password
 
   #
   # Command suites

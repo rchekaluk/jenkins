@@ -4,7 +4,7 @@
 #
 # Author: Doug MacEachern <dougm@vmware.com>
 # Author: Fletcher Nichol <fnichol@nichol.ca>
-# Author: Seth Chisamore <schisamo@getchef.com>
+# Author: Seth Chisamore <schisamo@chef.io>
 # Author: Seth Vargo <sethvargo@gmail.com>
 #
 # Copyright 2010, VMware, Inc.
@@ -200,4 +200,20 @@ default['jenkins']['master'].tap do |master|
   #   node.set['jenkins']['master']['runit']['sv_timeout'] = 60
   #
   master['runit']['sv_timeout'] = 7
+
+  #
+  # Repository URL. Default is latest
+  #
+  master['repository'] = case node['platform_family']
+                         when 'debian' then 'http://pkg.jenkins-ci.org/debian'
+                         when 'rhel' then 'http://pkg.jenkins-ci.org/redhat'
+                         end
+
+  #
+  # Repository key. Default is latest
+  #
+  master['repository_key'] = case node['platform_family']
+                             when 'debian' then 'http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key'
+                             when 'rhel' then 'http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key'
+                             end
 end

@@ -2,7 +2,7 @@
 # Cookbook Name:: jenkins
 # HWRP:: ssh_slave
 #
-# Author:: Seth Chisamore <schisamo@getchef.com>
+# Author:: Seth Chisamore <schisamo@chef.io>
 #
 # Copyright 2013-2014, Chef Software, Inc.
 #
@@ -37,16 +37,16 @@ class Chef
 
     # Attributes
     attribute :host,
-      kind_of: String
+              kind_of: String
     attribute :port,
-      kind_of: Integer,
-      default: 22
+              kind_of: Integer,
+              default: 22
     attribute :credentials,
-      kind_of: [Resource::JenkinsCredentials, String]
+              kind_of: [Resource::JenkinsCredentials, String]
     attribute :command_prefix,
-      kind_of: String
+              kind_of: String
     attribute :command_suffix,
-      kind_of: String
+              kind_of: String
 
     #
     # The credentials to SSH into the slave with. Credentials can be any
@@ -80,6 +80,7 @@ class Chef
         @current_resource.port(current_slave[:port])
         @current_resource.credentials(current_slave[:credentials])
         @current_resource.jvm_options(current_slave[:jvm_options])
+        @current_resource.java_path(current_slave[:java_path])
       end
 
       @current_resource
@@ -101,7 +102,7 @@ class Chef
             #{convert_to_groovy(new_resource.port)},
             credentials,
             #{convert_to_groovy(new_resource.jvm_options)},
-            null,
+            #{convert_to_groovy(new_resource.java_path)},
             #{convert_to_groovy(new_resource.command_prefix)},
             #{convert_to_groovy(new_resource.command_suffix)}
           )
@@ -116,6 +117,7 @@ class Chef
         host: 'slave.launcher.host',
         port: 'slave.launcher.port',
         jvm_options: 'slave.launcher.jvmOptions',
+        java_path: 'slave.launcher.javaPath',
         command_prefix: 'slave.launcher.prefixStartSlaveCmd',
         command_suffix: 'slave.launcher.suffixStartSlaveCmd',
       }
@@ -152,5 +154,5 @@ end
 
 Chef::Platform.set(
   resource: :jenkins_ssh_slave,
-  provider: Chef::Provider::JenkinsSSHSlave
+  provider: Chef::Provider::JenkinsSSHSlave,
 )

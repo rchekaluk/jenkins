@@ -2,7 +2,7 @@
 # Cookbook Name:: jenkins
 # HWRP:: jnlp_slave
 #
-# Author:: Seth Chisamore <schisamo@getchef.com>
+# Author:: Seth Chisamore <schisamo@chef.io>
 #
 # Copyright 2013-2014, Chef Software, Inc.
 #
@@ -36,12 +36,12 @@ class Chef
 
     # Attributes
     attribute :group,
-      kind_of: String,
-      default: 'jenkins',
-      regex: Config[:group_valid_regex]
+              kind_of: String,
+              default: 'jenkins',
+              regex: Config[:group_valid_regex]
     attribute :service_name,
-      kind_of: String,
-      default: 'jenkins-slave'
+              kind_of: String,
+              default: 'jenkins-slave'
   end
 end
 
@@ -57,7 +57,6 @@ class Chef
 
       parent_remote_fs_dir_resource.run_action(:create)
 
-      # don't create user/group on Windows
       unless Chef::Platform.windows?
         group_resource.run_action(:create)
         user_resource.run_action(:create)
@@ -66,7 +65,12 @@ class Chef
       remote_fs_dir_resource.run_action(:create)
       slave_jar_resource.run_action(:create)
 
-      service_resource.run_action(:enable) unless Chef::Platform.windows?
+      # The Windows's specific child class manages it's own service
+      return if Chef::Platform.windows?
+
+      service_resource.run_action(:enable)
+      # We need to restart the service if the slave jar is updated
+      service_resource.run_action(:restart) if slave_jar_resource.updated?
     end
 
     def action_delete
@@ -145,6 +149,7 @@ class Chef
     def group_resource
       return @group_resource if @group_resource
       @group_resource = Chef::Resource::Group.new(new_resource.group, run_context)
+      @group_resource.system(node['jenkins']['master']['use_system_accounts'])
       @group_resource
     end
 
@@ -161,6 +166,7 @@ class Chef
       @user_resource.gid(new_resource.group)
       @user_resource.comment('Jenkins slave user - Created by Chef')
       @user_resource.home(new_resource.remote_fs)
+      @user_resource.system(node['jenkins']['master']['use_system_accounts'])
       @user_resource
     end
 
@@ -210,7 +216,6 @@ class Chef
       @slave_jar_resource.backup(false)
       @slave_jar_resource.mode('0755')
       @slave_jar_resource.atomic_update(false)
-      @slave_jar_resource.notifies(:restart, service_resource)
       @slave_jar_resource
     end
 
@@ -247,5 +252,5 @@ end
 
 Chef::Platform.set(
   resource: :jenkins_jnlp_slave,
-  provider: Chef::Provider::JenkinsJNLPSlave
+  provider: Chef::Provider::JenkinsJNLPSlave,
 )
